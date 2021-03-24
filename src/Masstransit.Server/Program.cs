@@ -77,15 +77,15 @@ namespace Masstransit.Publisher
             IMassTransitTransport busTransport = new AzureServiceBusTransport(Configuration);
 
             //if (Environment.IsDevelopment())
-            //    busTransport = new RabbitMqTransport();
+            busTransport = new RabbitMqTransport();
             services.AddMassTransit(config =>
             {
                 config.AddBus(ctx => busTransport.BusConfiguration);
             });
-            
-            //services.AddSingleton<IPublishEndpoint>(busTransport.BusConfiguration);
-            //services.AddSingleton<ISendEndpointProvider>(busTransport.BusConfiguration);
-            //services.AddSingleton<IBus>(busTransport.BusConfiguration);
+
+            services.AddSingleton<IPublishEndpoint>(busTransport.BusConfiguration);
+            services.AddSingleton<ISendEndpointProvider>(busTransport.BusConfiguration);
+            services.AddSingleton<IBus>(busTransport.BusConfiguration);
         }
     }
 

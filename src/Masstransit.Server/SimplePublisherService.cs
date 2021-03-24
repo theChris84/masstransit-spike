@@ -30,8 +30,7 @@ namespace Masstransit.Publisher
                 //await _publish.Publish(new ValueEntered($"{i}.Light.Red"), ctx => ctx.SetRoutingKey("light.red"));
                 //await _publish.Publish(new ValueEntered($"{i}.Dark.Red"), ctx => ctx.SetRoutingKey("dark.red"));
                 //await _publish.Publish(new ValueEntered($"{i}.Light.Blue"), ctx => ctx.SetRoutingKey("light.blue"));
-                //await _publish.Publish(new ValueEntered($"{i}.Light.Blue"), ctx => ctx.SetRoutingKey("light.blue"));
-                //await _publish.Publish(new ValueEntered($"{i}.Blue with many"), ctx => ctx.TrySetRoutingKey("light.red"),  stoppingToken);
+                //await _publish.Publish(new ValueEntered($"{i}.Dark.Blue"), ctx => ctx.SetRoutingKey("dark.blue"));
 
                 await _publish.Publish(new ValueEntered($"{i}.Light.Red"), x => x.Headers.Set("ValueEntered", "light.red"));
                 await _publish.Publish(new ValueEntered($"{i}.Dark.Red"), x => x.Headers.Set("ValueEntered", "dark.red"));

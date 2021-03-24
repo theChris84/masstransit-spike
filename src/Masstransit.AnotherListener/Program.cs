@@ -20,58 +20,58 @@ namespace Masstransit.AnotherListener
         private async Task RunAsync()
         {
             var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-            //var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
-            //{
-            //    cfg.Host("localhost", "/");
-
-            //    cfg.Message<ValueEntered>(x => x.SetEntityName("value.entered"));
-
-            //    cfg.PrefetchCount = 1;
-            //    cfg.ReceiveEndpoint("red.client.valueEntered", endpoint =>
-            //    {
-            //        cfg.PrefetchCount = 1;
-
-            //        endpoint.ConfigureConsumeTopology = false;
-            //        endpoint.AutoDelete = true;
-
-            //        endpoint.Bind<ValueEntered>(exCfg =>
-            //        {
-            //            exCfg.RoutingKey = "*.red";
-            //            exCfg.ExchangeType = ExchangeType.Topic;
-            //        });
-
-            //        endpoint.Handler<ValueEntered>(ctx =>
-            //        {
-            //            Console.WriteLine($"Value: {ctx.Message.Value}");
-            //            return Task.CompletedTask;
-            //        });
-
-            //        endpoint.Consumer<RoutingEventConsumer>();
-            //    });
-            //});
-
-            var bus = Bus.Factory.CreateUsingAzureServiceBus(config =>
+            var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
             {
-                config.Message<ValueEntered>(m => { m.SetEntityName("value.entered"); });
-                config.Host(
-                    "Endpoint=sb://masstranis-spike.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=cu1mzcm97sy6RS8sDW3d5q5vcRHGKwLvAnaywuGNF0E=",
-                    hostConfig =>
+                cfg.Host("localhost", "/");
+
+                cfg.Message<ValueEntered>(x => x.SetEntityName("value.entered"));
+
+                cfg.PrefetchCount = 1;
+                cfg.ReceiveEndpoint("red.client.valueEntered", endpoint =>
+                {
+                    cfg.PrefetchCount = 1;
+
+                    endpoint.ConfigureConsumeTopology = false;
+                    endpoint.AutoDelete = true;
+
+                    endpoint.Bind<ValueEntered>(exCfg =>
                     {
-                        hostConfig.OperationTimeout = TimeSpan.FromSeconds(5);
-                        hostConfig.TransportType = TransportType.AmqpWebSockets;
+                        exCfg.RoutingKey = "*.red";
+                        exCfg.ExchangeType = ExchangeType.Topic;
                     });
 
-                config.SubscriptionEndpoint<ValueEntered>("value.entered",  endpoint =>
-                {
-                    endpoint.PrefetchCount = 1;
-                    endpoint.Rule = new RuleDescription("onlyred", new SqlFilter("ValueEntered= '.Red'"));
                     endpoint.Handler<ValueEntered>(ctx =>
                     {
                         Console.WriteLine($"Value: {ctx.Message.Value}");
                         return Task.CompletedTask;
                     });
+
+                    endpoint.Consumer<RoutingEventConsumer>();
                 });
             });
+
+            //var bus = Bus.Factory.CreateUsingAzureServiceBus(config =>
+            //{
+            //    config.Message<ValueEntered>(m => { m.SetEntityName("value.entered"); });
+            //    config.Host(
+            //        "Endpoint=sb://masstranis-spike.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=cu1mzcm97sy6RS8sDW3d5q5vcRHGKwLvAnaywuGNF0E=",
+            //        hostConfig =>
+            //        {
+            //            hostConfig.OperationTimeout = TimeSpan.FromSeconds(5);
+            //            hostConfig.TransportType = TransportType.AmqpWebSockets;
+            //        });
+
+            //    config.SubscriptionEndpoint<ValueEntered>("value.entered",  endpoint =>
+            //    {
+            //        endpoint.PrefetchCount = 1;
+            //        endpoint.Rule = new RuleDescription("onlyred", new SqlFilter("ValueEntered= '.Red'"));
+            //        endpoint.Handler<ValueEntered>(ctx =>
+            //        {
+            //            Console.WriteLine($"Value: {ctx.Message.Value}");
+            //            return Task.CompletedTask;
+            //        });
+            //    });
+            //});
 
             await bus.StartAsync(cts.Token);
 
