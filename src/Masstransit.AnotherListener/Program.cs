@@ -1,12 +1,12 @@
 ﻿using MassTransit;
 using MassTransit.SharedTypes;
-using RabbitMQ.Client;
+using Microsoft.Azure.ServiceBus;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml.Schema;
 using GreenPipes;
-using MassTransit.ConsumeConfigurators;
-using Microsoft.Azure.ServiceBus;
+using RabbitMQ.Client;
 
 namespace Masstransit.AnotherListener
 {
@@ -19,7 +19,7 @@ namespace Masstransit.AnotherListener
 
         private async Task RunAsync()
         {
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
             //var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
             //{
             //    cfg.Host("localhost", "/");
@@ -51,41 +51,43 @@ namespace Masstransit.AnotherListener
             //});
 
             var bus = Bus.Factory.CreateUsingAzureServiceBus(config =>
-                {
-                    config.Message<ValueEntered>(m => { m.SetEntityName("value.entered"); });
-                    config.Host("Endpoint=sb://masstranis-spike.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=cu1mzcm97sy6RS8sDW3d5q5vcRHGKwLvAnaywuGNF0E=",
-                        hostConfig =>
-                        {
-                            hostConfig.OperationTimeout = TimeSpan.FromSeconds(5);
-                            hostConfig.TransportType = TransportType.AmqpWebSockets;
-                        });
-
-                    config.SubscriptionEndpoint<ValueEntered>("value.entered", endpoint =>
+            {
+                config.Message<ValueEntered>(m => { m.SetEntityName("value.entered"); });
+                config.Host(
+                    "Endpoint=sb://masstranis-spike.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=cu1mzcm97sy6RS8sDW3d5q5vcRHGKwLvAnaywuGNF0E=",
+                    hostConfig =>
                     {
-                        endpoint.Handler<ValueEntered>(ctx =>
-                        {
-                            Console.WriteLine($"Value: {ctx.Message.Value}");
-                            return Task.CompletedTask;
-                        });
+                        hostConfig.OperationTimeout = TimeSpan.FromSeconds(5);
+                        hostConfig.TransportType = TransportType.AmqpWebSockets;
+                    });
+
+                config.SubscriptionEndpoint<ValueEntered>("value.entered",  endpoint =>
+                {
+                    endpoint.PrefetchCount = 1;
+                    endpoint.Rule = new RuleDescription("onlyred", new SqlFilter("ValueEntered= '.Red'"));
+                    endpoint.Handler<ValueEntered>(ctx =>
+                    {
+                        Console.WriteLine($"Value: {ctx.Message.Value}");
+                        return Task.CompletedTask;
                     });
                 });
+            });
 
-                await bus.StartAsync(cts.Token);
+            await bus.StartAsync(cts.Token);
 
-                try
-                {
-                    Console.WriteLine("Press enter to exit");
-                    await Task.Run(Console.ReadLine, cts.Token);
+            try
+            {
+                Console.WriteLine("Press enter to exit");
+                await Task.Run(Console.ReadLine, cts.Token);
 
-                }
-                finally
-                {
+            }
+            finally
+            {
 
-                    await bus.StopAsync(cts.Token);
-                }
+                await bus.StopAsync(cts.Token);
+            }
         }
     }
-    
 }
 
 internal class RoutingEventConsumer : IConsumer<ValueEntered>
