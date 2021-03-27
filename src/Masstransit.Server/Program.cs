@@ -1,13 +1,12 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using MassTransit;
+﻿using MassTransit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
+using System;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Masstransit.Publisher
 {
@@ -20,6 +19,14 @@ namespace Masstransit.Publisher
         {
             try
             {
+                Log.Logger = new LoggerConfiguration()
+                    .MinimumLevel.Debug()
+                    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                    .MinimumLevel.Override("System", LogEventLevel.Information)
+                    .Enrich.FromLogContext()
+                    .WriteTo.Console()
+                    .CreateLogger();
+
                 await new Program()
                     .CreateHostBuilder(args)
                     .Build()
@@ -31,23 +38,15 @@ namespace Masstransit.Publisher
             }
         }
 
-        private IHostBuilder CreateHostBuilder(string[] args)
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .MinimumLevel.Override("System", LogEventLevel.Information)
-                .Enrich.FromLogContext()
-                .WriteTo.Console()
-                .CreateLogger();
-
-            return Host.CreateDefaultBuilder(args)
+        private IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((hosting, config) =>
                 {
                     config.Sources.Clear();
                     Environment = hosting.HostingEnvironment;
 
                     config
+                        .AddEnvironmentVariables()
                         .AddJsonFile("appsettings.json", true, true)
                         .AddJsonFile($"appsettings.{Environment}.json", true, true);
                     Configuration = config.Build();
@@ -59,19 +58,19 @@ namespace Masstransit.Publisher
                 })
                 .ConfigureServices((_, services) =>
                 {
-                    ConfigureMassTransit(services);
+                    ConfigureMassTransit(services, Configuration);
                     services.AddHostedService<HostedService>();
                     services.AddHostedService<SimplePublisherService>();
                 })
                 .UseSerilog();
-        }
 
-        private void ConfigureMassTransit(IServiceCollection services)
+        private void ConfigureMassTransit(IServiceCollection services, IConfiguration configuration)
         {
-            IMassTransitTransport busTransport = new AzureServiceBusTransport(Configuration);
+            IMassTransitTransport busTransport = new AzureServiceBusTransport(configuration);
 
-            //if (Environment.IsDevelopment())
-            //busTransport = new RabbitMqTransport();
+            if (Environment.IsDevelopment())
+                 busTransport = new RabbitMqTransport(configuration);
+
             services.AddMassTransit(config =>
             {
                 config.AddBus(ctx => busTransport.BusConfiguration);

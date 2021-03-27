@@ -1,12 +1,11 @@
-﻿using System;
-using MassTransit;
+﻿using MassTransit;
 using MassTransit.Azure.ServiceBus.Core.Configurators;
 using MassTransit.SharedTypes;
 using MassTransit.Topology;
-using MassTransit.Topology.EntityNameFormatters;
 using Microsoft.Azure.ServiceBus;
 using Microsoft.Azure.ServiceBus.Primitives;
 using Microsoft.Extensions.Configuration;
+using System;
 
 namespace Masstransit.Publisher
 {
