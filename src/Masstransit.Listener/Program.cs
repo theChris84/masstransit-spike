@@ -18,20 +18,20 @@ namespace Masstransit.Listener
         {
             var bus = Bus.Factory.CreateUsingRabbitMq(cfg =>
            {
-               cfg.Message<ValueEntered>(x => x.SetEntityName("value.entered"));
+               cfg.Message<SomeValue>(x => x.SetEntityName("value.entered"));
 
 
                cfg.ReceiveEndpoint("blue.client.valueEntered", endpoint =>
                {
                    endpoint.ConfigureConsumeTopology = false;
 
-                   endpoint.Bind<ValueEntered>(exCfg => {
+                   endpoint.Bind<SomeValue>(exCfg => {
                        exCfg.RoutingKey = "#.blue";
                        exCfg.ExchangeType = ExchangeType.Topic;
                    });
 
-                   endpoint.Handler<ValueEntered>(ctx => {
-                       Console.WriteLine($"Value: {ctx.Message.Value}");
+                   endpoint.Handler<SomeValue>(ctx => {
+                       Console.WriteLine($"Payload: {ctx.Message.Payload}");
                        return Task.CompletedTask;
                    });
                });
@@ -45,20 +45,18 @@ namespace Masstransit.Listener
             {
                 Console.WriteLine("Press enter to exit");
                 await Task.Run(Console.ReadLine, cts.Token);
-
             }
             finally
             {
-
                 await bus.StopAsync(cts.Token);
             }
         }
 
-        private class EventConsumer : IConsumer<ValueEntered>
+        private class EventConsumer : IConsumer<SomeValue>
         {
-            public Task Consume(ConsumeContext<ValueEntered> context)
+            public Task Consume(ConsumeContext<SomeValue> context)
             {
-                Console.WriteLine($"Value: {context.Message.Value}");
+                Console.WriteLine($"Payload: {context.Message.Payload}");
                 return Task.CompletedTask;
             }
         }
