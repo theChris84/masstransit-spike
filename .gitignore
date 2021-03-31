@@ -31,3 +31,4 @@ Visual Studio 2019/
 _NCrunch*/
 *.[Nn]crunch*
 .*crunch*.local.xml
+/src/Masstransit.Publisher/Properties/launchSettings.json

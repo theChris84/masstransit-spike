@@ -1,7 +1,0 @@
-{
-  "profiles": {
-    "Masstransit.Publisher": {
-      "commandName": "Project"
-    }
-  }
-}
