@@ -65,17 +65,55 @@ let apiVersion : HttpHandler =
             let apiVersionText = sprintf "Api Version: %A" version 
             return! text apiVersionText next ctx
         }
-    
-let webApp =
+          
+
+
+ 
+let handler1 : HttpHandler =
+    fun (_ : HttpFunc) (ctx : HttpContext) ->
+        ctx.WriteTextAsync "Hello World"
+        
+let handler2 (name: string, age: int) =
+    fun (_ : HttpFunc) (ctx : HttpContext) ->
+            sprintf "Hello %s you are %i years old!" name age
+            |> ctx.WriteTextAsync
+
+(*
+let endpoints =
+    [
+        GET [  route "/" (text "Hello World") ] 
+        GET [  routef "/%s/%i" handler2 ]
+        subRoute "/sub" [
+            // Not specifying a http verb means it will listen to all verbs
+            route "/test" handler1
+        ]
+    ]
+*)
+(*    
+let endpoints =
+    [ subRoute "/foo" [ GET [ route "/bar" (text "Aloha!") ] ]
+      GET [ route "/" (text "Hello World") ]
+      GET_HEAD [ route "/foo" (text "Bar")
+                 route "/x" (text "y")
+                 route "/abc" (text "def") ]
+      // Not specifying a http verb means it will listen to all verbs
+      subRoute "/sub" [ route "/test" (text "This is a Test") ] ]
+*)
+
+
+let endpoints =
     choose [
-        route "/" >=> indexHandler "World"
-        route "/version" >=> apiVersion
+        route "/"           >=> indexHandler "World"
+        route "/version"    >=> apiVersion
         GET >=>
             choose [
                 routef "/hello/%s" indexHandler
             ]
-        setStatusCode 404 >=> text "Not Found" ]
+        setStatusCode 404   >=> text "Not Found" ]
 
+
+// ---------------------------------
+// Error h
 // ---------------------------------
 // Error handler
 // ---------------------------------
@@ -97,6 +135,14 @@ let configureCors (builder : CorsPolicyBuilder) =
        .AllowAnyHeader()
        |> ignore
 
+let configureServices (services : IServiceCollection) =
+    services
+        .AddCors()
+        .AddRouting()
+        .AddOpenApiDocument( fun opt -> opt.Title <- "MassTransit Server Rest API" )
+        .AddControllers()
+    |> ignore
+
 let configureApp (app : IApplicationBuilder) =
     let env = app.ApplicationServices.GetService<IWebHostEnvironment>()
     (match env.IsDevelopment() with
@@ -107,15 +153,18 @@ let configureApp (app : IApplicationBuilder) =
             .UseHttpsRedirection())
         .UseCors(configureCors)
         .UseStaticFiles()
-        .UseGiraffe(webApp)
-
-let configureServices (services : IServiceCollection) =
-    services.AddCors()    |> ignore
-    services.AddGiraffe() |> ignore
+        .UseRouting()
+        .UseOpenApi()
+        .UseSwaggerUi3()
+        .UseReDoc()
+        .UseGiraffe endpoints
+    |> ignore
 
 let configureLogging (builder : ILoggingBuilder) =
-    builder.AddConsole()
-           .AddDebug() |> ignore
+    builder
+        .AddConsole()
+        .AddDebug()
+    |> ignore
 
 [<EntryPoint>]
 let main args =
